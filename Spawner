@@ -1,0 +1,112 @@
+--// WHITELIST SETTINGS
+local AllowedUsers = {
+    "louisdave670911",
+    "rivals_king7547",
+    "Jake2321854",
+    "gx3MagicSparkCore",
+    "EMMANBOY60",
+    "marisel112233"
+}
+
+--// CHECK IF PLAYER IS WHITELISTED
+local Players = game:GetService("Players")
+local LocalPlayer = Players.LocalPlayer
+
+local function isWhitelisted(username)
+    for _, allowed in ipairs(AllowedUsers) do
+        if username:lower() == allowed:lower() then
+            return true
+        end
+    end
+    return false
+end
+
+if not isWhitelisted(LocalPlayer.Name) then
+    LocalPlayer:Kick("❌ Not allowed | This username is not in the allowed list.")
+    return -- Stop script if not allowed
+end
+
+--// LOAD UI
+local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
+
+local Window = Rayfield:CreateWindow({
+    Name = "Character System",
+    LoadingTitle = "Loading...",
+    LoadingSubtitle = "by Louis Dave",
+    ConfigurationSaving = { Enabled = false }
+})
+
+--// TABS
+local Tab1 = Window:CreateTab("Spawn Characters", 4483362458)
+local Tab2 = Window:CreateTab("Get Tools", 4483362458)
+
+--// SERVICES
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local giveToolEvent = ReplicatedStorage:FindFirstChild("GiveToolEvent")
+
+--// CHECK
+if not giveToolEvent then
+    warn("GiveToolEvent not found!")
+end
+
+--// FUNCTIONS
+local function spawnCharacter(remote)
+    pcall(function() remote:FireServer() end) -- Add safety to prevent errors
+end
+
+local function giveTool(characterName)
+    if giveToolEvent then
+        pcall(function() giveToolEvent:FireServer(characterName) end)
+    end
+end
+
+--// STORE CHARACTERS
+local characters = {}
+
+--// SCAN ALL PLAYERS FOR CHARACTER REMOTES
+for _, plr in ipairs(Players:GetPlayers()) do
+    local folder = plr:FindFirstChild("CharacterRemotes")
+    if folder then
+        for _, remote in ipairs(folder:GetChildren()) do
+            if remote:IsA("RemoteEvent") then
+                local cleanName = remote.Name:gsub("Remote", "")
+                local displayName = plr.Name .. " - " .. cleanName
+
+                -- Save to list
+                table.insert(characters, {
+                    name = cleanName,
+                    remote = remote,
+                    display = displayName
+                })
+
+                -- Add button to Spawn tab
+                Tab1:CreateButton({
+                    Name = displayName,
+                    Callback = function()
+                        print("Spawn requested:", cleanName)
+                        spawnCharacter(remote)
+                    end
+                })
+            end
+        end
+    end
+end
+
+--// ADD SAME LIST TO TOOLS TAB
+for _, data in ipairs(characters) do
+    Tab2:CreateButton({
+        Name = data.display,
+        Callback = function()
+            print("Give tool requested:", data.name)
+            giveTool(data.name)
+        end
+    })
+end
+
+--// SUCCESS NOTIFICATION
+Rayfield:Notify({
+    Title = "✅ Loaded",
+    Content = "Spawn + Tool system ready!",
+    Duration = 5
+})
+
